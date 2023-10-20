@@ -121,7 +121,7 @@ namespace ApiFacer.Controllers
         [HttpPost]
         [AllowAnonymous]
         [Route("login_with_session")]
-        public async Task<ActionResult> LoginWithSession(SessionRequest session)
+        public async Task<ActionResult> login_with_session(SessionRequest session)
         {
             var user = await Session(session.sessionkey);
 
