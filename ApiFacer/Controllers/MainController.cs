@@ -19,6 +19,24 @@ namespace ApiFacer.Controllers
             this.dbContext = dbContext;
         }
 
+        [NonAction]
+        public async Task<Logins> Session(string sessionkey)
+        {
+            var user = dbContext.Logins.Where(x => x.sessionkey.Equals(sessionkey)).FirstOrDefault();
+
+            if (user == null)
+            {
+                return null;
+            }
+            else
+            {
+                user.ipAdress = HttpContext.Connection.RemoteIpAddress.ToString();
+                await dbContext.SaveChangesAsync();
+                return user;
+            }
+        }
+
+
         [HttpPost]
         [Route("login")]
         public async Task<ActionResult> login(Login user)
@@ -27,7 +45,28 @@ namespace ApiFacer.Controllers
 
             if (login != null)
             {
-                return Ok(new { message = "Вход выполнен", status = "ok" });
+                var session = Guid.NewGuid().ToString();
+                var check_session = dbContext.Logins.Where(x => x.ipAdress == HttpContext.Connection.RemoteIpAddress.ToString()).FirstOrDefault();
+                if (check_session != null)
+                {
+                    check_session.sessionkey = session;
+                    check_session.ipAdress = HttpContext.Connection.RemoteIpAddress.ToString();
+                }
+                else
+                {
+                    Logins log = new Logins()
+                    {
+                        sessionkey = session,
+                        userId = login.Id,
+                        ipAdress = HttpContext.Connection.RemoteIpAddress.ToString()
+                    };
+
+                    await dbContext.Logins.AddAsync(log);
+                }
+
+                await dbContext.SaveChangesAsync();
+
+                return Ok(new { message = "Вход выполнен", status = "ok", session = $"{session}" });
             }
             return NotFound(new { message = "Нет такого пользователя!", status = "err" });
         }

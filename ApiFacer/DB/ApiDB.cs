@@ -9,5 +9,6 @@ namespace ApiFacer.DB
 
         public DbSet<Users> Users { get; set; }
         public DbSet<Events> Events { get; set; }
+        public DbSet<Logins> Logins { get; set; }
     }
 }
