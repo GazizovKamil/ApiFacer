@@ -9,5 +9,6 @@ namespace ApiFacer.Classes
         public string sessionkey { get; set; }
         public string ipAdress { get; set; }
         public int userId { get; set; }
+        public int id_role { get; set; }
     }
 }

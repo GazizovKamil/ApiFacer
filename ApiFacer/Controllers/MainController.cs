@@ -1,6 +1,7 @@
 ﻿using ApiFacer.Classes;
 using ApiFacer.DB;
 using ApiFacer.Requests;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -58,6 +59,7 @@ namespace ApiFacer.Controllers
                     {
                         sessionkey = session,
                         userId = login.Id,
+                        id_role = login.id_role,
                         ipAdress = HttpContext.Connection.RemoteIpAddress.ToString()
                     };
 
@@ -75,15 +77,23 @@ namespace ApiFacer.Controllers
         [Route("create_event")]
         public async Task<ActionResult> create_event(CreateEvent e)
         {
-            Events ev = new Events()
+            var user = await Session(e.sessionkey);
+
+            if (user.id_role == 1)
             {
-                Name = e.Name,
-            };
+                Events ev = new Events()
+                {
+                    Name = e.Name,
+                };
 
-            await dbContext.Events.AddAsync(ev);
-            await dbContext.SaveChangesAsync();
-
-            return Ok(new { message = "", status = "ok" });
+                await dbContext.Events.AddAsync(ev);
+                await dbContext.SaveChangesAsync();
+                return Ok(new { message = "", status = "ok" });
+            }
+            else
+            {
+                return NotFound(new { message = "Нет прав!", status = "err" });
+            }
         }
 
         [HttpGet]
@@ -93,6 +103,62 @@ namespace ApiFacer.Controllers
             var ev = await dbContext.Events.ToListAsync();
 
             return Ok(new { message = "", status = "ok", events = ev });
+        }
+
+        [HttpPost]
+        [Route("logout")]
+        public async Task<IActionResult> LogOut(SessionRequest session)
+        {
+            var login = Session(session.sessionkey);
+
+            var log = dbContext.Logins.Where(x => x.sessionkey == session.sessionkey).FirstOrDefault();
+            dbContext.Logins.Remove(log);
+            await dbContext.SaveChangesAsync();
+
+            return Ok(new { maessage = "Вы вышли!", status = "ok" });
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [Route("login_with_session")]
+        public async Task<ActionResult> LoginWithSession(SessionRequest session)
+        {
+            var user = await Session(session.sessionkey);
+
+            if (user != null)
+            {
+                return Ok(new { session = user.sessionkey, status = "ok" });
+            }
+
+            return NotFound(new { message = "Нет сессии!", status = "err" });
+        }
+
+        [HttpPost]
+        [Route("create_event")]
+        public async Task<ActionResult> add_photographer(AddUser u)
+        {
+            var user = await Session(u.sessionkey);
+
+            if (user.id_role == 1)
+            {
+                Users ev = new Users()
+                {
+                    login = u.login,
+                    password = u.password,
+                    first_name = u.first_name,
+                    last_name = u.last_name,
+                    surname = u.surname,
+                    id_role = 2,
+                };
+
+                await dbContext.Users.AddAsync(ev);
+                await dbContext.SaveChangesAsync();
+                return Ok(new { message = "", status = "ok" });
+            }
+            else
+            {
+                return NotFound(new { message = "Нет прав!", status = "err" });
+            }
         }
     }
 }

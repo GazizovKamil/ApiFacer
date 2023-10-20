@@ -3,6 +3,7 @@ using ApiFacer.DB;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ApiFacer.Migrations
 {
     [DbContext(typeof(ApiDB))]
-    partial class ApiDBModelSnapshot : ModelSnapshot
+    [Migration("20231020102429_туц1")]
+    partial class туц1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -122,18 +125,6 @@ namespace ApiFacer.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            first_name = "Арсений",
-                            id_role = 1,
-                            last_name = "А",
-                            login = "admin",
-                            password = "admin",
-                            surname = "Артюхин"
-                        });
                 });
 #pragma warning restore 612, 618
         }
