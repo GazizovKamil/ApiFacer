@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 
 namespace ApiFacer.Controllers
 {
@@ -14,10 +15,12 @@ namespace ApiFacer.Controllers
     public class MainController : Controller
     {
         private readonly ApiDB dbContext;
+        private readonly IWebHostEnvironment _hostEnvironment;
 
-        public MainController(ApiDB dbContext)
+        public MainController(ApiDB dbContext, IWebHostEnvironment hostEnvironment)
         {
             this.dbContext = dbContext;
+            this._hostEnvironment = hostEnvironment;
         }
 
         [NonAction]
@@ -79,28 +82,69 @@ namespace ApiFacer.Controllers
         {
             var user = await Session(e.sessionkey);
 
+            if (user == null)
+            {
+                return NotFound(new { message = "Вы не вошли в профиль", status = "err" });
+            }
+
+            // Checking if user has the permissions to create events
             if (user.id_role == 1)
             {
-                Events ev = new Events()
+                string mainPath = Path.Combine(_hostEnvironment.WebRootPath, "EventFolders");
+                string parentFolderPath = string.Empty;
+                if (e.parentEventId.HasValue)
                 {
-                    Name = e.Name,
-                };
+                    var parentEvent = await dbContext.Events.FindAsync(e.parentEventId);
+                    if (parentEvent == null)
+                    {
+                        return NotFound(new { message = "Родительского мероприятия не существует!", status = "err" });
+                    }
+                    parentFolderPath = Path.Combine(parentEvent.path);
+                }
 
-                await dbContext.Events.AddAsync(ev);
-                await dbContext.SaveChangesAsync();
-                return Ok(new { message = "", status = "ok" });
+                string folderPath = Path.Combine(parentFolderPath, e.Name);
+                string fullFolderPath = Path.Combine(mainPath, folderPath);
+
+                Console.WriteLine(fullFolderPath);
+                // Check if directory already exists
+                if (!Directory.Exists(fullFolderPath))
+                {
+                    Directory.CreateDirectory(fullFolderPath);
+
+                    // Create a new event
+                    Events ev = new Events()
+                    {
+                        Name = e.Name,
+                        ParentEventId = e.parentEventId,
+                        path = folderPath  // Saving relative path
+                    };
+
+                    // Add the event to the database
+                    await dbContext.Events.AddAsync(ev);
+                    await dbContext.SaveChangesAsync();
+                    return Ok(new { message = "", status = "ok" });
+                }
+                else
+                {
+                    return NotFound(new { message = "Мероприятие с таким названием уже существует!", status = "err" });
+                }
             }
             else
             {
                 return NotFound(new { message = "Нет прав!", status = "err" });
             }
+
         }
+
 
         [HttpGet]
         [Route("get_events")]
         public async Task<ActionResult> get_events()
         {
-            var ev = await dbContext.Events.ToListAsync();
+            var ev = await dbContext.Events
+            .Include(e => e.ParentEvent)
+            .Include(e => e.Images)
+            .ToListAsync();
 
             return Ok(new { message = "", status = "ok", events = ev });
         }
@@ -110,6 +154,11 @@ namespace ApiFacer.Controllers
         public async Task<IActionResult> LogOut(SessionRequest session)
         {
             var login = Session(session.sessionkey);
+
+            if (login == null)
+            {
+                return NotFound(new { message = "Вы не вошли в профиль", status = "err" });
+            }
 
             var log = dbContext.Logins.Where(x => x.sessionkey == session.sessionkey).FirstOrDefault();
             dbContext.Logins.Remove(log);
@@ -134,10 +183,15 @@ namespace ApiFacer.Controllers
         }
 
         [HttpPost]
-        [Route("create_event")]
+        [Route("add_photographer")]
         public async Task<ActionResult> add_photographer(AddUser u)
         {
             var user = await Session(u.sessionkey);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "Вы не вошли в профиль", status = "err" });
+            }
 
             if (user.id_role == 1)
             {
@@ -160,6 +214,85 @@ namespace ApiFacer.Controllers
                 return NotFound(new { message = "Нет прав!", status = "err" });
             }
         }
+
+        [HttpPost]
+        [Route("add_image_to_event/{eventId}")]
+        public async Task<ActionResult> add_image_to_event([FromRoute] int eventId, [FromForm]ImageRequest s)
+        {
+            //curl - X POST http://192.168.137.1:5001/api/Main/add_image_to_event/3 ^
+            //-F "files=@D:\Камиль\Downloads\800px-Hegel_by_Schlesinger.jpg;type=image/jpeg" ^
+            //-F "sessionkey=aa101797-a3cf-4460-8210-6f64a09c5199"
+
+            var user = await Session(s.sessionkey);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "Вы не вошли в профиль", status = "err" });
+            }
+
+            if (user.id_role == 2)
+            {
+                string mainPath = Path.Combine(_hostEnvironment.WebRootPath, "EventFolders");
+                var eventEntity = await dbContext.Events.FindAsync(eventId);
+
+                if (eventEntity == null)
+                {
+                    return NotFound(new { message = "Мероприятие не найдено!", status = "err" });
+                }
+
+                string folderPath = Path.Combine(mainPath, eventEntity.path);
+
+                if (!Directory.Exists(folderPath))
+                {
+                    Directory.CreateDirectory(folderPath);
+                }
+                Console.WriteLine(folderPath);
+                foreach (var file in s.files)
+                {
+                    var supportedTypes = new[] { "image/jpg", "image/jpeg", "image/png" };
+
+                    if (!supportedTypes.Contains(file.ContentType))
+                    {
+                        return BadRequest(new { message = "Неподдерживаемый тип файла. Только .jpg, .jpeg, .png файлы поддерживаются.", status = "err" });
+                    }
+
+                    var filePath = Path.Combine(folderPath, file.FileName);
+                    using (var stream = System.IO.File.Create(filePath))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+
+                    Images images = new Images()
+                    {
+                        path = "EventFolders/" + eventEntity.path + "/" + file.FileName,
+                        eventId = eventId
+                    };
+
+                    await dbContext.Images.AddAsync(images);
+                    await dbContext.SaveChangesAsync();
+                }
+
+                return Ok(new { message = "Файлы успешно загружены!", status = "ok" });
+            }
+            else
+            {
+                return NotFound(new { message = "Нет прав!", status = "err" });
+            }
+        }
+
+        [HttpGet]
+        [Route("images/{*filepath}")]
+        public async Task<IActionResult> GetImage([FromRoute] string filepath)
+        {
+            var imagePath = Path.Combine(_hostEnvironment.WebRootPath + "/" + filepath);
+
+            if (!System.IO.File.Exists(imagePath))
+                return NotFound();
+
+            var image = System.IO.File.OpenRead(imagePath);
+            return File(image, "image/jpeg");
+        }
+
     }
 }
 ;
