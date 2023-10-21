@@ -292,7 +292,6 @@ namespace ApiFacer.Controllers
             var image = System.IO.File.OpenRead(imagePath);
             return File(image, "image/jpeg");
         }
-
     }
 }
 ;
