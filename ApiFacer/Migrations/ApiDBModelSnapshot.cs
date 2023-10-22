@@ -36,6 +36,9 @@ namespace ApiFacer.Migrations
                     b.Property<int?>("ParentEventId")
                         .HasColumnType("int");
 
+                    b.Property<int>("authorId")
+                        .HasColumnType("int");
+
                     b.Property<string>("path")
                         .HasColumnType("nvarchar(max)");
 
@@ -53,6 +56,9 @@ namespace ApiFacer.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("authorId")
+                        .HasColumnType("int");
 
                     b.Property<int>("eventId")
                         .HasColumnType("int");
@@ -120,7 +126,31 @@ namespace ApiFacer.Migrations
                         {
                             Id = 2,
                             name = "Фотограф"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            name = "Гость"
                         });
+                });
+
+            modelBuilder.Entity("ApiFacer.Classes.UserImages", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ImageId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserImages");
                 });
 
             modelBuilder.Entity("ApiFacer.Classes.Users", b =>
@@ -130,6 +160,9 @@ namespace ApiFacer.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("faceDescriptor")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("first_name")
                         .HasColumnType("nvarchar(max)");

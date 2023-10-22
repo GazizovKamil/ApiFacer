@@ -9,6 +9,7 @@ namespace ApiFacer.Classes
         [Key]
         public int Id { get; set; }
         public string? path { get; set; }
+        public int authorId { get; set; }
         public int eventId { get; set; }
         [ForeignKey("eventId")]
         [JsonIgnore]

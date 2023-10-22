@@ -7,6 +7,13 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using System;
+using DlibDotNet;
+using DlibDotNet.Dnn;
+using DlibDotNet.Extensions;
+using Emgu.CV.Features2D;
+using System.Text;
+using Newtonsoft.Json;
 
 namespace ApiFacer.Controllers
 {
@@ -40,6 +47,24 @@ namespace ApiFacer.Controllers
             }
         }
 
+        [NonAction]
+        async Task<Images> ProcessImage(IFormFile file, string folderPath, int eventId, string eventPath, int authorId)
+        {
+            var filePath = Path.Combine(folderPath, file.FileName);
+            using (var stream = System.IO.File.Create(filePath))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            Images images = new Images()
+            {
+                path = "EventFolders/" + eventPath + "/" + file.FileName,
+                eventId = eventId,
+                authorId = authorId
+            };
+
+            return images;
+        }
 
         [HttpPost]
         [Route("login")]
@@ -116,7 +141,8 @@ namespace ApiFacer.Controllers
                     {
                         Name = e.Name,
                         ParentEventId = e.parentEventId,
-                        path = folderPath  // Saving relative path
+                        path = folderPath,
+                        authorId = user.userId,
                     };
 
                     // Add the event to the database
@@ -137,16 +163,36 @@ namespace ApiFacer.Controllers
         }
 
 
-        [HttpGet]
+        [HttpPost]
         [Route("get_events")]
-        public async Task<ActionResult> get_events()
+        public async Task<ActionResult> get_events(SessionRequest session)
         {
-            var ev = await dbContext.Events
-            .Include(e => e.ParentEvent)
-            .Include(e => e.Images)
-            .ToListAsync();
+            var login = await Session(session.sessionkey);
 
-            return Ok(new { message = "", status = "ok", events = ev });
+            if (login == null)
+            {
+                return NotFound(new { message = "Вы не вошли в профиль", status = "err" });
+            }
+
+            int authorId = login.userId;
+
+            if (login.id_role == 1)
+            {
+                var ev = await dbContext.Events
+               .Include(e => e.ParentEvent)
+               .Include(e => e.Images)
+               .ToListAsync();
+                return Ok(new { message = "", status = "ok", events = ev });
+            }
+            else
+            {
+                var ev = await dbContext.Events
+                .Where(e => e.authorId == authorId)
+                .Include(e => e.ParentEvent)
+                .Include(e => e.Images)
+                .ToListAsync();
+                return Ok(new { message = "", status = "ok", events = ev });
+            }
         }
 
         [HttpPost]
@@ -215,14 +261,15 @@ namespace ApiFacer.Controllers
             }
         }
 
+        //curl - X POST http://192.168.137.1:5001/api/Main/add_image_to_event/2 ^
+        //-F "files=@C:\Users\kamil\Postman\files\OjZesovKQPI.jpg;type=image/jpeg" ^
+        //-F "files=@C:\Users\kamil\Postman\files\xvAorCW2D_E.jpg;type=image/png" ^
+        //-F "sessionkey=aa101797-a3cf-4460-8210-6f64a09c5199"
+
         [HttpPost]
         [Route("add_image_to_event/{eventId}")]
         public async Task<ActionResult> add_image_to_event([FromRoute] int eventId, [FromForm]ImageRequest s)
         {
-            //curl - X POST http://192.168.137.1:5001/api/Main/add_image_to_event/3 ^
-            //-F "files=@D:\Камиль\Downloads\800px-Hegel_by_Schlesinger.jpg;type=image/jpeg" ^
-            //-F "sessionkey=aa101797-a3cf-4460-8210-6f64a09c5199"
-
             var user = await Session(s.sessionkey);
 
             if (user == null)
@@ -230,7 +277,7 @@ namespace ApiFacer.Controllers
                 return NotFound(new { message = "Вы не вошли в профиль", status = "err" });
             }
 
-            if (user.id_role == 2)
+            if (user.id_role == 2 || user.id_role == 1)
             {
                 string mainPath = Path.Combine(_hostEnvironment.WebRootPath, "EventFolders");
                 var eventEntity = await dbContext.Events.FindAsync(eventId);
@@ -246,7 +293,7 @@ namespace ApiFacer.Controllers
                 {
                     Directory.CreateDirectory(folderPath);
                 }
-                Console.WriteLine(folderPath);
+
                 foreach (var file in s.files)
                 {
                     var supportedTypes = new[] { "image/jpg", "image/jpeg", "image/png" };
@@ -256,21 +303,26 @@ namespace ApiFacer.Controllers
                         return BadRequest(new { message = "Неподдерживаемый тип файла. Только .jpg, .jpeg, .png файлы поддерживаются.", status = "err" });
                     }
 
-                    var filePath = Path.Combine(folderPath, file.FileName);
-                    using (var stream = System.IO.File.Create(filePath))
+                    Images image = await ProcessImage(file, folderPath, eventId, eventEntity.path,user.userId);
+                    await dbContext.AddAsync(image);
+                    List<Users> users =  await DetectAndSaveFace(Path.Combine(folderPath, file.FileName));
+
+                    if (users.Count > 0)
                     {
-                        await file.CopyToAsync(stream);
+                        foreach (Users u in users)
+                        {
+                            var userImage = new UserImages
+                            {
+                                ImageId = image.Id,
+                                UserId = u.Id
+                            };
+
+                            await dbContext.UserImages.AddAsync(userImage);
+                        }
                     }
-
-                    Images images = new Images()
-                    {
-                        path = "EventFolders/" + eventEntity.path + "/" + file.FileName,
-                        eventId = eventId
-                    };
-
-                    await dbContext.Images.AddAsync(images);
-                    await dbContext.SaveChangesAsync();
                 }
+
+                await dbContext.SaveChangesAsync();
 
                 return Ok(new { message = "Файлы успешно загружены!", status = "ok" });
             }
@@ -291,6 +343,78 @@ namespace ApiFacer.Controllers
 
             var image = System.IO.File.OpenRead(imagePath);
             return File(image, "image/jpeg");
+        }
+
+        [NonAction]
+        public async Task<List<Users>> DetectAndSaveFace(string imagePath)
+        {
+            var usersFound = new List<Users>();
+            double threshold = 0.6;  // You might adjust this value depending on your needs
+
+            using (var fd = Dlib.GetFrontalFaceDetector())
+            using (var sp = ShapePredictor.Deserialize("shape_predictor_68_face_landmarks.dat"))
+            using (var net = DlibDotNet.Dnn.LossMetric.Deserialize("dlib_face_recognition_resnet_model_v1.dat"))
+            {
+                using (var img = Dlib.LoadImage<RgbPixel>(imagePath))
+                {
+                    var dets = fd.Operator(img);
+
+                    foreach (var rect in dets)
+                    {
+                        var shape = sp.Detect(img, rect);
+                        var faceChip = Dlib.GetFaceChipDetails(shape, 150, 0.25);
+                        var face = Dlib.ExtractImageChip<RgbPixel>(img, faceChip);
+                        var matrix = new Matrix<RgbPixel>(face);
+                        var faceDescriptor = net.Operator<RgbPixel>(matrix);
+
+                        Users user = null;
+                        var users = await dbContext.Users.ToListAsync();
+                        double minDistance = double.MaxValue;
+
+                        //foreach (var existingUser in users)
+                        //{
+                        //    var existingFaceDescriptor = JsonConvert.DeserializeObject<Matrix<float>>(Encoding.UTF8.GetString(existingUser.faceDescriptor));
+                        //    //var distance = CalculateDistance(existingFaceDescriptor, faceDescriptor);
+
+                        //    if (distance < threshold && distance < minDistance)
+                        //    {
+                        //        minDistance = distance;
+                        //        user = existingUser;
+                        //    }
+                        //}
+
+                        if (user == null)
+                        {
+                            string faceDescriptorString = JsonConvert.SerializeObject(faceDescriptor);
+                            var faceDescriptorBytes = Encoding.UTF8.GetBytes(faceDescriptorString);
+
+                            var newUser = new Users
+                            {
+                                faceDescriptor = faceDescriptorBytes,
+                                id_role = 3
+                            };
+
+                            await dbContext.Users.AddAsync(newUser);
+                            await dbContext.SaveChangesAsync();
+                            user = newUser;
+                        }
+                        usersFound.Add(user);
+                    }
+                }
+            }
+            return usersFound;
+        }
+
+        [NonAction]
+        private double CalculateDistance(Matrix<float> descriptor1, Matrix<float> descriptor2)
+        {
+            double sqsum = 0.0;
+            for (int i = 0; i < descriptor1.Size; i++)
+            {
+                var diff = descriptor1[i] - descriptor2[i];
+                sqsum += diff * diff;
+            }
+            return Math.Sqrt(sqsum);
         }
     }
 }
