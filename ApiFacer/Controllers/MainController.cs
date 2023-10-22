@@ -222,7 +222,7 @@ namespace ApiFacer.Controllers
 
             if (user != null)
             {
-                return Ok(new { session = user.sessionkey, status = "ok" });
+                return Ok(new { session = user.sessionkey, role = user.id_role ,status = "ok" });
             }
 
             return NotFound(new { message = "Нет сессии!", status = "err" });
