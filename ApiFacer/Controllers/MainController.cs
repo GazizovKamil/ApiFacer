@@ -96,7 +96,7 @@ namespace ApiFacer.Controllers
 
                 await dbContext.SaveChangesAsync();
 
-                return Ok(new { message = "Вход выполнен", status = "ok", session = $"{session}" });
+                return Ok(new { message = "Вход выполнен", status = "ok", session = $"{session}", role = login.id_role });
             }
             return NotFound(new { message = "Нет такого пользователя!", status = "err" });
         }
@@ -352,8 +352,8 @@ namespace ApiFacer.Controllers
             double threshold = 0.6;  // You might adjust this value depending on your needs
 
             using (var fd = Dlib.GetFrontalFaceDetector())
-            using (var sp = ShapePredictor.Deserialize("shape_predictor_68_face_landmarks.dat"))
-            using (var net = DlibDotNet.Dnn.LossMetric.Deserialize("dlib_face_recognition_resnet_model_v1.dat"))
+            using (var sp = ShapePredictor.Deserialize("dlib/shape_predictor_68_face_landmarks.dat"))
+            using (var net = DlibDotNet.Dnn.LossMetric.Deserialize("dlib/dlib_face_recognition_resnet_model_v1.dat"))
             {
                 using (var img = Dlib.LoadImage<RgbPixel>(imagePath))
                 {
@@ -371,26 +371,30 @@ namespace ApiFacer.Controllers
                         var users = await dbContext.Users.ToListAsync();
                         double minDistance = double.MaxValue;
 
-                        //foreach (var existingUser in users)
-                        //{
-                        //    var existingFaceDescriptor = JsonConvert.DeserializeObject<Matrix<float>>(Encoding.UTF8.GetString(existingUser.faceDescriptor));
-                        //    //var distance = CalculateDistance(existingFaceDescriptor, faceDescriptor);
+                        foreach (var existingUser in users)
+                        {
+                            if (existingUser.faceDescriptor != null)
+                            {
+                                var existingFaceDescriptor = JsonConvert.DeserializeObject(existingUser.faceDescriptor);
 
-                        //    if (distance < threshold && distance < minDistance)
-                        //    {
-                        //        minDistance = distance;
-                        //        user = existingUser;
-                        //    }
-                        //}
+                                //Matrix<float> matrix1 = (Matrix<float>)existingFaceDescriptor; // Сначала приводим тип к Matrix<float>
+                                //OutputLabels<Matrix<float>> output = new DeserializeObject(matrix1); // Затем приводим тип к OutputLabels
+
+                                //for (uint i = 0; i < existingFaceDescriptor.Count; ++i)
+                                //    for (var j = i; j < faceDescriptor.Count; ++j)
+                                //        if (Dlib.Length(existingFaceDescriptor[i] - faceDescriptor[j]) < 0.6)
+                                //            user = existingUser; break;
+                            }
+                        }
 
                         if (user == null)
                         {
                             string faceDescriptorString = JsonConvert.SerializeObject(faceDescriptor);
-                            var faceDescriptorBytes = Encoding.UTF8.GetBytes(faceDescriptorString);
+                            //var faceDescriptorBytes = Encoding.UTF8.GetBytes(faceDescriptorString);
 
                             var newUser = new Users
                             {
-                                faceDescriptor = faceDescriptorBytes,
+                                faceDescriptor = faceDescriptorString,
                                 id_role = 3
                             };
 

@@ -12,6 +12,6 @@ namespace ApiFacer.Classes
         public string? first_name { get; set; }
         public string? last_name { get; set; }
         public int id_role { get; set; }
-        public byte[] faceDescriptor { get; set; }
+        public string? faceDescriptor { get; set; }
     }
 }
