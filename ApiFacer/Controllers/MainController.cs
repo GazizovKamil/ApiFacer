@@ -14,6 +14,7 @@ using DlibDotNet.Extensions;
 using Emgu.CV.Features2D;
 using System.Text;
 using Newtonsoft.Json;
+using System.Globalization;
 
 namespace ApiFacer.Controllers
 {
@@ -349,7 +350,9 @@ namespace ApiFacer.Controllers
         public async Task<List<Users>> DetectAndSaveFace(string imagePath)
         {
             var usersFound = new List<Users>();
-            double threshold = 0.6;  // You might adjust this value depending on your needs
+            double threshold = 0.6;
+
+            var users = await dbContext.Users.ToListAsync();
 
             using (var fd = Dlib.GetFrontalFaceDetector())
             using (var sp = ShapePredictor.Deserialize("dlib/shape_predictor_68_face_landmarks.dat"))
@@ -367,47 +370,73 @@ namespace ApiFacer.Controllers
                         var matrix = new Matrix<RgbPixel>(face);
                         var faceDescriptor = net.Operator<RgbPixel>(matrix);
 
-                        Users user = null;
-                        var users = await dbContext.Users.ToListAsync();
+                        Users closestUser = null;
                         double minDistance = double.MaxValue;
+
+                        var faceDescriptorArray = faceDescriptor.ToArray();
+                        var faceDescriptorStr = string.Join(",", faceDescriptorArray.Select(p => p.ToString()));
+                        var faceDescrip = faceDescriptorStr
+                        .Split(',')
+                        .Select(s =>
+                        {
+                            bool success = float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var result);
+                            if (success)
+                                return result;
+                            return 0;
+                        })
+                        .ToArray();
+                        var faceDescriptorRestored1 = new DlibDotNet.Matrix<float>(1, faceDescrip.Length);
+
+                        for (int i = 0; i < faceDescrip.Length; i++)
+                        {
+                            faceDescriptorRestored1[i] = faceDescrip[i];
+                        }
 
                         foreach (var existingUser in users)
                         {
-                            if (existingUser.faceDescriptor != null)
+                            if (existingUser.FaceDescriptor != null)
                             {
-                                var existingFaceDescriptor = JsonConvert.DeserializeObject(existingUser.faceDescriptor);
+                                var faceDescriptorArrayRestored = existingUser.FaceDescriptor.Split(',').Select(float.Parse).ToArray();
+                                var faceDescriptorRestored = new DlibDotNet.Matrix<float>(1, faceDescriptorArrayRestored.Length);
 
-                                //Matrix<float> matrix1 = (Matrix<float>)existingFaceDescriptor; // Сначала приводим тип к Matrix<float>
-                                //OutputLabels<Matrix<float>> output = new DeserializeObject(matrix1); // Затем приводим тип к OutputLabels
+                                for (int i = 0; i < faceDescriptorArrayRestored.Length; i++)
+                                {
+                                    faceDescriptorRestored[i] = faceDescriptorArrayRestored[i];
+                                }
 
-                                //for (uint i = 0; i < existingFaceDescriptor.Count; ++i)
-                                //    for (var j = i; j < faceDescriptor.Count; ++j)
-                                //        if (Dlib.Length(existingFaceDescriptor[i] - faceDescriptor[j]) < 0.6)
-                                //            user = existingUser; break;
+                                var distance = Dlib.Length(faceDescriptorRestored1 - faceDescriptorRestored);
+                                if (distance < minDistance)
+                                {
+                                    minDistance = distance;
+                                    closestUser = existingUser;
+                                }
                             }
                         }
 
-                        if (user == null)
+                        
+                        if (minDistance > threshold)
                         {
-                            string faceDescriptorString = JsonConvert.SerializeObject(faceDescriptor);
-                            //var faceDescriptorBytes = Encoding.UTF8.GetBytes(faceDescriptorString);
-
                             var newUser = new Users
                             {
-                                faceDescriptor = faceDescriptorString,
+                                FaceDescriptor = faceDescriptorStr,
                                 id_role = 3
                             };
 
-                            await dbContext.Users.AddAsync(newUser);
+                            dbContext.Users.Add(newUser);
                             await dbContext.SaveChangesAsync();
-                            user = newUser;
+
+                            usersFound.Add(newUser);
                         }
-                        usersFound.Add(user);
+                        else
+                        {
+                            usersFound.Add(closestUser);
+                        }
                     }
                 }
             }
             return usersFound;
         }
+
 
         [NonAction]
         private double CalculateDistance(Matrix<float> descriptor1, Matrix<float> descriptor2)

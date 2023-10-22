@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using DlibDotNet;
+using System.ComponentModel.DataAnnotations;
 
 namespace ApiFacer.Classes
 {
@@ -12,6 +13,6 @@ namespace ApiFacer.Classes
         public string? first_name { get; set; }
         public string? last_name { get; set; }
         public int id_role { get; set; }
-        public string? faceDescriptor { get; set; }
+        public string? FaceDescriptor { get; set; }
     }
 }
