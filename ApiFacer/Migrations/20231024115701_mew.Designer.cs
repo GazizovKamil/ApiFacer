@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ApiFacer.Migrations
 {
     [DbContext(typeof(ApiDB))]
-    [Migration("20231022173655_users")]
-    partial class users
+    [Migration("20231024115701_mew")]
+    partial class mew
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -103,6 +103,28 @@ namespace ApiFacer.Migrations
                     b.ToTable("Logins");
                 });
 
+            modelBuilder.Entity("ApiFacer.Classes.People", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("first_name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("last_name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("surname")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("People");
+                });
+
             modelBuilder.Entity("ApiFacer.Classes.Roles", b =>
                 {
                     b.Property<int>("Id")
@@ -163,9 +185,6 @@ namespace ApiFacer.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<byte[]>("faceDescriptor")
-                        .HasColumnType("varbinary(max)");
 
                     b.Property<string>("first_name")
                         .HasColumnType("nvarchar(max)");

@@ -7,7 +7,7 @@
 namespace ApiFacer.Migrations
 {
     /// <inheritdoc />
-    public partial class users : Migration
+    public partial class mew : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -50,6 +50,21 @@ namespace ApiFacer.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "People",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    surname = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    first_name = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    last_name = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_People", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Roles",
                 columns: table => new
                 {
@@ -87,8 +102,7 @@ namespace ApiFacer.Migrations
                     surname = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     first_name = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     last_name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    id_role = table.Column<int>(type: "int", nullable: false),
-                    faceDescriptor = table.Column<byte[]>(type: "varbinary(max)", nullable: true)
+                    id_role = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -128,8 +142,8 @@ namespace ApiFacer.Migrations
 
             migrationBuilder.InsertData(
                 table: "Users",
-                columns: new[] { "Id", "faceDescriptor", "first_name", "id_role", "last_name", "login", "password", "surname" },
-                values: new object[] { 1, null, "Арсений", 1, "А", "admin", "admin", "Артюхин" });
+                columns: new[] { "Id", "first_name", "id_role", "last_name", "login", "password", "surname" },
+                values: new object[] { 1, "Арсений", 1, "А", "admin", "admin", "Артюхин" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Events_ParentEventId",
@@ -150,6 +164,9 @@ namespace ApiFacer.Migrations
 
             migrationBuilder.DropTable(
                 name: "Logins");
+
+            migrationBuilder.DropTable(
+                name: "People");
 
             migrationBuilder.DropTable(
                 name: "Roles");

@@ -11,6 +11,7 @@ namespace ApiFacer.DB
         public DbSet<Events> Events { get; set; }
         public DbSet<Logins> Logins { get; set; }
         public DbSet<Images> Images { get; set; }
+        public DbSet<People> People { get; set; }
         public DbSet<UserImages> UserImages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

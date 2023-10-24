@@ -100,6 +100,28 @@ namespace ApiFacer.Migrations
                     b.ToTable("Logins");
                 });
 
+            modelBuilder.Entity("ApiFacer.Classes.People", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("first_name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("last_name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("surname")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("People");
+                });
+
             modelBuilder.Entity("ApiFacer.Classes.Roles", b =>
                 {
                     b.Property<int>("Id")
@@ -160,9 +182,6 @@ namespace ApiFacer.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("FaceDescriptor")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("first_name")
                         .HasColumnType("nvarchar(max)");

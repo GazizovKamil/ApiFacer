@@ -15,6 +15,7 @@ using Emgu.CV.Features2D;
 using System.Text;
 using Newtonsoft.Json;
 using System.Globalization;
+using System.Collections.Immutable;
 
 namespace ApiFacer.Controllers
 {
@@ -262,10 +263,11 @@ namespace ApiFacer.Controllers
             }
         }
 
-        //curl - X POST http://192.168.137.1:5001/api/Main/add_image_to_event/2 ^
-        //-F "files=@C:\Users\kamil\Postman\files\OjZesovKQPI.jpg;type=image/jpeg" ^
-        //-F "files=@C:\Users\kamil\Postman\files\xvAorCW2D_E.jpg;type=image/png" ^
-        //-F "sessionkey=aa101797-a3cf-4460-8210-6f64a09c5199"
+        //curl -X POST http://192.168.137.177:5001/api/Main/add_image_to_event/1 ^
+        //-F "files=@C:\Users\Камиль\Desktop\xvAorCW2D_E.jpg;type=image/jpeg" ^
+        //-F "files=@C:\Users\Камиль\Desktop\OjZesovKQPI.jpg;type=image/png" ^
+        //-F "sessionkey=fc33fab9-9f36-468b-aca7-e536ed8554c3"
+
 
         [HttpPost]
         [Route("add_image_to_event/{eventId}")]
@@ -305,12 +307,14 @@ namespace ApiFacer.Controllers
                     }
 
                     Images image = await ProcessImage(file, folderPath, eventId, eventEntity.path,user.userId);
-                    await dbContext.AddAsync(image);
-                    List<Users> users =  await DetectAndSaveFace(Path.Combine(folderPath, file.FileName));
+                    await dbContext.Images.AddAsync(image);
+                    await dbContext.SaveChangesAsync();
+
+                    List<People> users = await DetectAndSaveFace(Path.Combine(folderPath, file.FileName));
 
                     if (users.Count > 0)
                     {
-                        foreach (Users u in users)
+                        foreach (People u in users)
                         {
                             var userImage = new UserImages
                             {
@@ -346,19 +350,26 @@ namespace ApiFacer.Controllers
             return File(image, "image/jpeg");
         }
 
+
+        //curl -X POST http://192.168.137.177:5001/api/Main/add_image_to_event/1 ^
+        //-F "files=@C:\Users\Камиль\Desktop\xvAorCW2D_E.jpg;type=image/jpeg" ^
+        //-F "files=@C:\Users\Камиль\Desktop\OjZesovKQPI.jpg;type=image/png" ^
+        //-F "sessionkey=489e6243-47d4-417d-ad20-98a260655e10"
+
         [NonAction]
-        public async Task<List<Users>> DetectAndSaveFace(string imagePath)
+        public async Task<List<People>> DetectAndSaveFace(string imagepath)
         {
-            var usersFound = new List<Users>();
+            //Console.WriteLine(imagePath);
+            var usersFound = new List<People>();
             double threshold = 0.6;
 
-            var users = await dbContext.Users.ToListAsync();
+            var users = await dbContext.People.ToListAsync();
 
             using (var fd = Dlib.GetFrontalFaceDetector())
             using (var sp = ShapePredictor.Deserialize("dlib/shape_predictor_68_face_landmarks.dat"))
             using (var net = DlibDotNet.Dnn.LossMetric.Deserialize("dlib/dlib_face_recognition_resnet_model_v1.dat"))
             {
-                using (var img = Dlib.LoadImage<RgbPixel>(imagePath))
+                using (var img = Dlib.LoadImage<RgbPixel>(imagepath))
                 {
                     var dets = fd.Operator(img);
 
@@ -368,62 +379,53 @@ namespace ApiFacer.Controllers
                         var faceChip = Dlib.GetFaceChipDetails(shape, 150, 0.25);
                         var face = Dlib.ExtractImageChip<RgbPixel>(img, faceChip);
                         var matrix = new Matrix<RgbPixel>(face);
-                        var faceDescriptor = net.Operator<RgbPixel>(matrix);
-
-                        Users closestUser = null;
+                        var faceDescriptor = net.Operator(matrix);
+                        
+                        People closestUser = null;
                         double minDistance = double.MaxValue;
 
                         var faceDescriptorArray = faceDescriptor.ToArray();
-                        var faceDescriptorStr = string.Join(",", faceDescriptorArray.Select(p => p.ToString()));
-                        var faceDescrip = faceDescriptorStr
-                        .Split(',')
-                        .Select(s =>
-                        {
-                            bool success = float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var result);
-                            if (success)
-                                return result;
-                            return 0;
-                        })
-                        .ToArray();
-                        var faceDescriptorRestored1 = new DlibDotNet.Matrix<float>(1, faceDescrip.Length);
-
-                        for (int i = 0; i < faceDescrip.Length; i++)
-                        {
-                            faceDescriptorRestored1[i] = faceDescrip[i];
-                        }
 
                         foreach (var existingUser in users)
                         {
-                            if (existingUser.FaceDescriptor != null)
+                            var peop = Mongo.GetDescript(existingUser.Id);
+                            if (peop != null && peop.descriptor != null)
                             {
-                                var faceDescriptorArrayRestored = existingUser.FaceDescriptor.Split(',').Select(float.Parse).ToArray();
-                                var faceDescriptorRestored = new DlibDotNet.Matrix<float>(1, faceDescriptorArrayRestored.Length);
+                                float[] faceEmbedding = peop.descriptor;
+                                Matrix<float> embeddingMatrix = new Matrix<float>(1, faceEmbedding.Length);
 
-                                for (int i = 0; i < faceDescriptorArrayRestored.Length; i++)
+                                // Populate the matrix with the values from the face embedding array
+                                for (int i = 0; i < faceEmbedding.Length; i++)
                                 {
-                                    faceDescriptorRestored[i] = faceDescriptorArrayRestored[i];
+                                    embeddingMatrix[0, i] = faceEmbedding[i];
                                 }
 
-                                var distance = Dlib.Length(faceDescriptorRestored1 - faceDescriptorRestored);
+                                var distance = Dlib.Length(faceDescriptor.SingleOrDefault() - embeddingMatrix);
                                 if (distance < minDistance)
                                 {
+                                    Console.WriteLine(distance);
                                     minDistance = distance;
                                     closestUser = existingUser;
                                 }
+
                             }
                         }
 
-                        
+
                         if (minDistance > threshold)
                         {
-                            var newUser = new Users
+                            var newUser = new People();
+
+                            dbContext.People.Add(newUser);
+                            await dbContext.SaveChangesAsync();
+
+                            PeopleDescriptor people = new PeopleDescriptor()
                             {
-                                FaceDescriptor = faceDescriptorStr,
-                                id_role = 3
+                                descriptor = faceDescriptor.SingleOrDefault().ToArray(),
+                                people_id = newUser.Id
                             };
 
-                            dbContext.Users.Add(newUser);
-                            await dbContext.SaveChangesAsync();
+                            Mongo.AddToDB(people);
 
                             usersFound.Add(newUser);
                         }
@@ -436,19 +438,5 @@ namespace ApiFacer.Controllers
             }
             return usersFound;
         }
-
-
-        [NonAction]
-        private double CalculateDistance(Matrix<float> descriptor1, Matrix<float> descriptor2)
-        {
-            double sqsum = 0.0;
-            for (int i = 0; i < descriptor1.Size; i++)
-            {
-                var diff = descriptor1[i] - descriptor2[i];
-                sqsum += diff * diff;
-            }
-            return Math.Sqrt(sqsum);
-        }
     }
 }
-;
