@@ -1,5 +1,4 @@
-﻿using DlibDotNet;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace ApiFacer.Classes
 {

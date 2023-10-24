@@ -8,14 +8,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using System;
-using DlibDotNet;
-using DlibDotNet.Dnn;
-using DlibDotNet.Extensions;
-using Emgu.CV.Features2D;
 using System.Text;
-using Newtonsoft.Json;
 using System.Globalization;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using Newtonsoft.Json;
 
 namespace ApiFacer.Controllers
 {
@@ -60,7 +57,7 @@ namespace ApiFacer.Controllers
 
             Images images = new Images()
             {
-                path = "EventFolders/" + eventPath + "/" + file.FileName,
+                path = @"EventFolders\" + eventPath + @"\" + file.FileName,
                 eventId = eventId,
                 authorId = authorId
             };
@@ -263,10 +260,10 @@ namespace ApiFacer.Controllers
             }
         }
 
-        //curl -X POST http://192.168.137.177:5001/api/Main/add_image_to_event/1 ^
-        //-F "files=@C:\Users\Камиль\Desktop\xvAorCW2D_E.jpg;type=image/jpeg" ^
-        //-F "files=@C:\Users\Камиль\Desktop\OjZesovKQPI.jpg;type=image/png" ^
-        //-F "sessionkey=fc33fab9-9f36-468b-aca7-e536ed8554c3"
+        //curl -X POST http://192.168.137.1:5001/api/Main/add_image_to_event/1 ^
+        //-F "files=@C:\Users\kamil\Postman\files\xvAorCW2D_E.jpg;type=image/jpeg" ^
+        //-F "files=@C:\Users\kamil\Postman\files\OjZesovKQPI.jpg;type=image/png" ^
+        //-F "sessionkey=f28f8165-7a4c-4515-904a-5ba0852c8e56"
 
 
         [HttpPost]
@@ -290,6 +287,7 @@ namespace ApiFacer.Controllers
                     return NotFound(new { message = "Мероприятие не найдено!", status = "err" });
                 }
 
+                //Console.WriteLine(Path.Combine(mainPath, eventEntity.path));
                 string folderPath = Path.Combine(mainPath, eventEntity.path);
 
                 if (!Directory.Exists(folderPath))
@@ -310,24 +308,10 @@ namespace ApiFacer.Controllers
                     await dbContext.Images.AddAsync(image);
                     await dbContext.SaveChangesAsync();
 
-                    List<People> users = await DetectAndSaveFace(Path.Combine(folderPath, file.FileName));
+                    string fileNameFromEventFolders = Path.Combine("EventFolders", eventEntity.path, file.FileName);
 
-                    if (users.Count > 0)
-                    {
-                        foreach (People u in users)
-                        {
-                            var userImage = new UserImages
-                            {
-                                ImageId = image.Id,
-                                UserId = u.Id
-                            };
-
-                            await dbContext.UserImages.AddAsync(userImage);
-                        }
-                    }
+                    await Task.Run(() => CallPythonScript(Path.Combine(folderPath, file.FileName), fileNameFromEventFolders));
                 }
-
-                await dbContext.SaveChangesAsync();
 
                 return Ok(new { message = "Файлы успешно загружены!", status = "ok" });
             }
@@ -350,93 +334,78 @@ namespace ApiFacer.Controllers
             return File(image, "image/jpeg");
         }
 
+        [NonAction]
+        void CallPythonScript(string imagePath, string path)
+        {
+            using (Process process = new Process())
+            {
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.FileName = "python";
+                process.StartInfo.Arguments = $"./Scripts/face_detection.py \"{imagePath}\" \"{path}\"";
+                process.Start();
 
-        //curl -X POST http://192.168.137.177:5001/api/Main/add_image_to_event/1 ^
-        //-F "files=@C:\Users\Камиль\Desktop\xvAorCW2D_E.jpg;type=image/jpeg" ^
-        //-F "files=@C:\Users\Камиль\Desktop\OjZesovKQPI.jpg;type=image/png" ^
-        //-F "sessionkey=489e6243-47d4-417d-ad20-98a260655e10"
+                process.WaitForExit();
+                Console.WriteLine("exit");
+            }
+        }
 
         [NonAction]
-        public async Task<List<People>> DetectAndSaveFace(string imagepath)
+        private async Task<List<string>> search_by_face(string imagePath, string path)
         {
-            //Console.WriteLine(imagePath);
-            var usersFound = new List<People>();
-            double threshold = 0.6;
+            List<string> matches = new List<string>();
 
-            var users = await dbContext.People.ToListAsync();
-
-            using (var fd = Dlib.GetFrontalFaceDetector())
-            using (var sp = ShapePredictor.Deserialize("dlib/shape_predictor_68_face_landmarks.dat"))
-            using (var net = DlibDotNet.Dnn.LossMetric.Deserialize("dlib/dlib_face_recognition_resnet_model_v1.dat"))
+            using (Process process = new Process())
             {
-                using (var img = Dlib.LoadImage<RgbPixel>(imagepath))
-                {
-                    var dets = fd.Operator(img);
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.RedirectStandardOutput = true;  // Enable to read output
+                process.StartInfo.FileName = "python";
+                process.StartInfo.Arguments = $"./Scripts/get_images.py \"{imagePath}\" \"{path}\"";
+                process.Start();
 
-                    foreach (var rect in dets)
-                    {
-                        var shape = sp.Detect(img, rect);
-                        var faceChip = Dlib.GetFaceChipDetails(shape, 150, 0.25);
-                        var face = Dlib.ExtractImageChip<RgbPixel>(img, faceChip);
-                        var matrix = new Matrix<RgbPixel>(face);
-                        var faceDescriptor = net.Operator(matrix);
-                        
-                        People closestUser = null;
-                        double minDistance = double.MaxValue;
+                // Read the output.
+                string result = process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
 
-                        var faceDescriptorArray = faceDescriptor.ToArray();
-
-                        foreach (var existingUser in users)
-                        {
-                            var peop = Mongo.GetDescript(existingUser.Id);
-                            if (peop != null && peop.descriptor != null)
-                            {
-                                float[] faceEmbedding = peop.descriptor;
-                                Matrix<float> embeddingMatrix = new Matrix<float>(1, faceEmbedding.Length);
-
-                                // Populate the matrix with the values from the face embedding array
-                                for (int i = 0; i < faceEmbedding.Length; i++)
-                                {
-                                    embeddingMatrix[0, i] = faceEmbedding[i];
-                                }
-
-                                var distance = Dlib.Length(faceDescriptor.SingleOrDefault() - embeddingMatrix);
-                                if (distance < minDistance)
-                                {
-                                    Console.WriteLine(distance);
-                                    minDistance = distance;
-                                    closestUser = existingUser;
-                                }
-
-                            }
-                        }
-
-
-                        if (minDistance > threshold)
-                        {
-                            var newUser = new People();
-
-                            dbContext.People.Add(newUser);
-                            await dbContext.SaveChangesAsync();
-
-                            PeopleDescriptor people = new PeopleDescriptor()
-                            {
-                                descriptor = faceDescriptor.SingleOrDefault().ToArray(),
-                                people_id = newUser.Id
-                            };
-
-                            Mongo.AddToDB(people);
-
-                            usersFound.Add(newUser);
-                        }
-                        else
-                        {
-                            usersFound.Add(closestUser);
-                        }
-                    }
-                }
+                matches = JsonConvert.DeserializeObject<List<string>>(result);
+                // Now "matches" contains user IDs or other data you decided to output from Python
             }
-            return usersFound;
+            return matches;
+        }
+
+        //curl -X POST -H "Content-Type: multipart/form-data" -F "file=@C:\Users\kamil\OneDrive\Рабочий стол\photo_2023-02-21_15-48-15.jpg" http://192.168.137.1:5001/api/Main/search_face
+
+        [HttpPost]
+        [Route("search_face")]
+        public async Task<ActionResult> search_face([FromForm] SearchRequest s)
+        {
+            string mainPath = Path.Combine(_hostEnvironment.WebRootPath, "EventFolders");
+
+            //Console.WriteLine(Path.Combine(mainPath, eventEntity.path));
+            string folderPath = Path.Combine(mainPath, "faces");
+
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+            }
+
+            var supportedTypes = new[] { "image/jpg", "image/jpeg", "image/png" };
+
+            if (!supportedTypes.Contains(s.file.ContentType))
+            {
+                return BadRequest(new { message = "Неподдерживаемый тип файла. Только .jpg, .jpeg, .png файлы поддерживаются.", status = "err" });
+            }
+
+            string filePath = Path.Combine(folderPath, s.file.FileName);
+
+            using (var stream = System.IO.File.Create(filePath))
+            {
+                await s.file.CopyToAsync(stream);
+            }
+            string fileNameFromEventFolders = Path.Combine("EventFolders\\faces", s.file.FileName);
+
+            List<string> matches = await Task.Run(() => search_by_face(Path.Combine(folderPath, s.file.FileName), fileNameFromEventFolders));
+
+            return Ok(new { message = "Файлы успешно загружены!", status = "ok", matches = matches });
         }
     }
 }

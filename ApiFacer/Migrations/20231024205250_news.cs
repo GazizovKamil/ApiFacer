@@ -7,7 +7,7 @@
 namespace ApiFacer.Migrations
 {
     /// <inheritdoc />
-    public partial class mew : Migration
+    public partial class news : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -16,12 +16,12 @@ namespace ApiFacer.Migrations
                 name: "Events",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    path = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    authorId = table.Column<int>(type: "int", nullable: false),
-                    ParentEventId = table.Column<int>(type: "int", nullable: true)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", nullable: true),
+                    path = table.Column<string>(type: "TEXT", nullable: true),
+                    authorId = table.Column<int>(type: "INTEGER", nullable: false),
+                    ParentEventId = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -37,12 +37,12 @@ namespace ApiFacer.Migrations
                 name: "Logins",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    sessionkey = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ipAdress = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    userId = table.Column<int>(type: "int", nullable: false),
-                    id_role = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    sessionkey = table.Column<string>(type: "TEXT", nullable: false),
+                    ipAdress = table.Column<string>(type: "TEXT", nullable: false),
+                    userId = table.Column<int>(type: "INTEGER", nullable: false),
+                    id_role = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -50,27 +50,12 @@ namespace ApiFacer.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "People",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    surname = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    first_name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    last_name = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_People", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Roles",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    name = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    name = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -81,10 +66,10 @@ namespace ApiFacer.Migrations
                 name: "UserImages",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ImageId = table.Column<int>(type: "int", nullable: false),
-                    UserId = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    ImageId = table.Column<int>(type: "INTEGER", nullable: false),
+                    UserId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -95,14 +80,14 @@ namespace ApiFacer.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    login = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    password = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    surname = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    first_name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    last_name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    id_role = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    login = table.Column<string>(type: "TEXT", nullable: true),
+                    password = table.Column<string>(type: "TEXT", nullable: true),
+                    surname = table.Column<string>(type: "TEXT", nullable: true),
+                    first_name = table.Column<string>(type: "TEXT", nullable: true),
+                    last_name = table.Column<string>(type: "TEXT", nullable: true),
+                    id_role = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -113,11 +98,11 @@ namespace ApiFacer.Migrations
                 name: "Images",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    path = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    authorId = table.Column<int>(type: "int", nullable: false),
-                    eventId = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    path = table.Column<string>(type: "TEXT", nullable: true),
+                    authorId = table.Column<int>(type: "INTEGER", nullable: false),
+                    eventId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -164,9 +149,6 @@ namespace ApiFacer.Migrations
 
             migrationBuilder.DropTable(
                 name: "Logins");
-
-            migrationBuilder.DropTable(
-                name: "People");
 
             migrationBuilder.DropTable(
                 name: "Roles");

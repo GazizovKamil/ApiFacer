@@ -12,7 +12,7 @@ builder.Services.AddSwaggerGen();
 
 
 builder.Services.AddDbContext<ApiDB>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DBConnection")), ServiceLifetime.Scoped);
+    options.UseSqlite(builder.Configuration.GetConnectionString("DBConnection")), ServiceLifetime.Scoped);
 
 builder.Services.AddCors(options =>
 {
