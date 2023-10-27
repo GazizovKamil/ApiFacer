@@ -1,0 +1,21 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Отправка и поиск картинок</title>
+</head>
+<body>
+    <h1>Отправка и поиск картинок</h1>
+    <form action="/search_face/{event_id}" method="post" enctype="multipart/form-data">
+        <label for="image">Выберите изображение для поиска:</label>
+        <input type="file" name="file" accept="image/jpeg, image/png" required>
+        <button type="submit">Отправить для поиска</button>
+    </form>
+
+    <form action="/add_image_to_event/{eventId}" method="post" enctype="multipart/form-data">
+        <label for="images">Выберите изображения для загрузки:</label>
+        <input type="file" name="files" accept="image/jpeg, image/png" multiple required>
+        <input type="hidden" name="sessionkey" value="f28f8165-7a4c-4515-904a-5ba0852c8e56"> <!-- Замените на ваш ключ сессии -->
+        <button type="submit">Загрузить изображения</button>
+    </form>
+</body>
+</html>
