@@ -16,6 +16,8 @@ c = conn.cursor()
 
 image_path = sys.argv[1]
 path = sys.argv[2]
+event_id = int(sys.argv[3])
+
 img = dlib.load_rgb_image(image_path)
 
 dets = detector(img, 1)
@@ -23,7 +25,7 @@ matched_images = []
 for k, d in enumerate(dets):
     shape = sp(img, d)
     face_descriptor = facerec.compute_face_descriptor(img, shape)
-    c.execute("SELECT * FROM people")
+    c.execute("SELECT * FROM People")
     rows = c.fetchall()
     if len(rows) == 0:
         sys.exit()
@@ -33,15 +35,19 @@ for k, d in enumerate(dets):
         dist = np.linalg.norm(face_descriptor - stored_descriptor)
         if dist < 0.6: 
             match = True
-            c.execute("SELECT image_path FROM faces WHERE user_id=?", (row[0],))
+            c.execute("SELECT Images.path FROM UserImages JOIN Images ON UserImages.ImageId = Images.Id WHERE UserImages.UserId = ?", (row[0],))
             matched_images.extend([x[0] for x in c.fetchall()])
             break
     user_id = row[0] if match else None
+    ImageId = None
     if not match:
         db_face_descriptor = np.array(face_descriptor).tobytes()
-        c.execute("INSERT INTO people (descriptor) VALUES (?)", (db_face_descriptor,))
+        c.execute("INSERT INTO People (descriptor) VALUES (?)", (db_face_descriptor,))
         user_id = c.lastrowid
-    c.execute("INSERT INTO faces (image_path, user_id) VALUES (?, ?)", (path, user_id))
+        c.execute("INSERT INTO Images (path, authorId, eventId) VALUES (?, ?, ?)", (path, user_id, event_id))
+        ImageId = c.lastrowid
+        c.execute("INSERT INTO UserImages (ImageId, UserId) VALUES (?, ?)", (ImageId, user_id))
+
 
 conn.commit()
 conn.close()

@@ -40,7 +40,7 @@ img = dlib.load_rgb_image(image_path)
 
 # Обнаруживаем лицо и вычисляем дескриптор
 dets = detector(img, 1)
-print(len(dets))
+
 for k, d in enumerate(dets):
     shape = sp(img, d)
     face_descriptor = facerec.compute_face_descriptor(img, shape)

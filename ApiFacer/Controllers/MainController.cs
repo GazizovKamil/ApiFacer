@@ -13,6 +13,7 @@ using System.Globalization;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Newtonsoft.Json;
+using Microsoft.Extensions.Logging;
 
 namespace ApiFacer.Controllers
 {
@@ -345,12 +346,11 @@ namespace ApiFacer.Controllers
                 process.Start();
 
                 process.WaitForExit();
-                Console.WriteLine("exit");
             }
         }
 
         [NonAction]
-        private async Task<List<string>> search_by_face(string imagePath, string path)
+        private async Task<List<string>> search_by_face(string imagePath, string path, int event_id)
         {
             List<string> matches = new List<string>();
 
@@ -359,7 +359,7 @@ namespace ApiFacer.Controllers
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;  // Enable to read output
                 process.StartInfo.FileName = "python";
-                process.StartInfo.Arguments = $"./Scripts/get_images.py \"{imagePath}\" \"{path}\"";
+                process.StartInfo.Arguments = $"./Scripts/get_images.py \"{imagePath}\" \"{path}\" \"{event_id}\"";
                 process.Start();
 
                 // Read the output.
@@ -372,14 +372,20 @@ namespace ApiFacer.Controllers
             return matches;
         }
 
-        //curl -X POST -H "Content-Type: multipart/form-data" -F "file=@C:\Users\kamil\OneDrive\Рабочий стол\photo_2023-02-21_15-48-15.jpg" http://192.168.137.1:5001/api/Main/search_face
+        //curl -X POST -H "Content-Type: multipart/form-data" -F "file=@C:\Users\kamil\OneDrive\Рабочий стол\photo_2023-02-21_15-48-15.jpg" http://192.168.137.1:5001/api/Main/search_face/1
 
         [HttpPost]
-        [Route("search_face")]
-        public async Task<ActionResult> search_face([FromForm] SearchRequest s)
+        [Route("search_face/{event_id}")]
+        public async Task<ActionResult> search_face([FromRoute] int event_id, [FromForm] SearchRequest s)
         {
             string mainPath = Path.Combine(_hostEnvironment.WebRootPath, "EventFolders");
 
+            var events = await dbContext.Events.FindAsync(event_id); 
+
+            if (events == null)
+            {
+                return BadRequest(new { message = "Нет такого мероприятия.", status = "err" });
+            }
             //Console.WriteLine(Path.Combine(mainPath, eventEntity.path));
             string folderPath = Path.Combine(mainPath, "faces");
 
@@ -403,7 +409,7 @@ namespace ApiFacer.Controllers
             }
             string fileNameFromEventFolders = Path.Combine("EventFolders\\faces", s.file.FileName);
 
-            List<string> matches = await Task.Run(() => search_by_face(Path.Combine(folderPath, s.file.FileName), fileNameFromEventFolders));
+            List<string> matches = await Task.Run(() => search_by_face(Path.Combine(folderPath, s.file.FileName), fileNameFromEventFolders, event_id));
 
             return Ok(new { message = "Файлы успешно загружены!", status = "ok", matches = matches });
         }
