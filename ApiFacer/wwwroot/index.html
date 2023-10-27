@@ -1,21 +1,99 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
-    <title>Отправка и поиск картинок</title>
+    <title>Отправка и отображение изображений</title>
+    <style>
+        .image-container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+            .image-container img {
+                width: 200px;
+                margin: 10px;
+            }
+    </style>
 </head>
 <body>
-    <h1>Отправка и поиск картинок</h1>
-    <form action="/search_face/{event_id}" method="post" enctype="multipart/form-data">
-        <label for="image">Выберите изображение для поиска:</label>
-        <input type="file" name="file" accept="image/jpeg, image/png" required>
-        <button type="submit">Отправить для поиска</button>
+    <h1>Image Upload</h1>
+    <form method="post" enctype="multipart/form-data" action="/api/Main/add_image_to_event/1">
+        <input type="file" name="files" multiple />
+        <input type="hidden" name="sessionkey" value="f28f8165-7a4c-4515-904a-5ba0852c8e56" />
+        <button type="submit">Upload</button>
     </form>
 
-    <form action="/add_image_to_event/{eventId}" method="post" enctype="multipart/form-data">
-        <label for="images">Выберите изображения для загрузки:</label>
-        <input type="file" name="files" accept="image/jpeg, image/png" multiple required>
-        <input type="hidden" name="sessionkey" value="f28f8165-7a4c-4515-904a-5ba0852c8e56"> <!-- Замените на ваш ключ сессии -->
-        <button type="submit">Загрузить изображения</button>
-    </form>
+    <h1>Поиск изображений</h1>
+    <input type="file" id="searchFile" accept="image/*">
+    <button onclick="searchImage()">Поиск</button>
+
+    <div id="imageContainer" class="image-container"></div>
+
+    <script>
+        function uploadImage() {
+            const fileInput = document.getElementById('uploadFile');
+            const files = fileInput.files;
+            const sessionKey = 'f28f8165-7a4c-4515-904a-5ba0852c8e56'; // Замените на ваш реальный session key
+
+            if (files.length > 0) {
+                const formData = new FormData();
+
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('files', files[i]);
+                }
+
+                // Добавляем sessionkey в FormData
+                formData.append('sessionkey', sessionKey);
+
+                fetch('/api/Main/add_image_to_event/1', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data);
+                        // Действия после успешной загрузки изображений
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        // Действия при возникновении ошибки
+                    });
+            }
+        }
+
+        function searchImage() {
+            const fileInput = document.getElementById('searchFile');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch('/api/Main/search_face/1', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data);
+                        displayMatches(data.matches); // Вызов функции для отображения изображений
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        // Действия при возникновении ошибки
+                    });
+            }
+        }
+
+        function displayMatches(matches) {
+            const imageContainer = document.getElementById('imageContainer');
+            imageContainer.innerHTML = ''; // Очистка содержимого контейнера перед отображением новых изображений
+
+            matches.forEach(match => {
+                const img = document.createElement('img');
+                img.src = match;
+                imageContainer.appendChild(img);
+            });
+        }
+    </script>
 </body>
 </html>

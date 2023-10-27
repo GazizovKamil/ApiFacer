@@ -2,7 +2,7 @@
 {
     public class ImageRequest
     {
-        public IFormFileCollection files { get; set; }
+        public List<IFormFile> files { get; set; }
         public string sessionkey { get; set; }
     }
 }
