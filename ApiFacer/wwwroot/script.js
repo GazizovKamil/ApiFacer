@@ -35,7 +35,7 @@ $('#faceSearchForm').submit(function (e) {
     let formData = new FormData(this);
 
     $.ajax({
-        url: 'api/Main/search_face/1',
+        url: 'api/Main/search_face/4',
         type: 'POST',
         data: formData,
         success: function (data) {
