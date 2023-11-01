@@ -21,7 +21,7 @@ def insert_descriptor(face_descriptor, path):
         result = c.fetchone()
         if result:
             image_id = result[0]
-            c.execute("INSERT INTO UserImages (ImageId, UserId) VALUES (?, ?)", (image_id, user_id))
+            c.execute("INSERT INTO UserImages (ImageId, PeopleId) VALUES (?, ?)", (image_id, user_id))
 
         conn.commit()
 

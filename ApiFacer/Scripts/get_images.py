@@ -35,7 +35,7 @@ for k, d in enumerate(dets):
         dist = np.linalg.norm(face_descriptor - stored_descriptor)
         if dist < 0.6: 
             match = True
-            c.execute("SELECT Images.path FROM UserImages JOIN Images ON UserImages.ImageId = Images.Id WHERE UserImages.UserId = ?", (row[0],))
+            c.execute("SELECT Images.path FROM UserImages JOIN Images ON UserImages.ImageId = Images.Id WHERE UserImages.PeopleId = ?", (row[0],))
             matched_images.extend([x[0] for x in c.fetchall()])
             
     user_id = row[0] if match else None

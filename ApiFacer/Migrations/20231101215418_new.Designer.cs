@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ApiFacer.Migrations
 {
     [DbContext(typeof(ApiDB))]
-    [Migration("20231024205250_news")]
-    partial class news
+    [Migration("20231101215418_new")]
+    partial class @new
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -92,6 +92,37 @@ namespace ApiFacer.Migrations
                     b.ToTable("Logins");
                 });
 
+            modelBuilder.Entity("ApiFacer.Classes.People", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<byte[]>("descriptor")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("first_name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("last_name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("middle_name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("phone_number")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("People");
+                });
+
             modelBuilder.Entity("ApiFacer.Classes.Roles", b =>
                 {
                     b.Property<int>("Id")
@@ -116,11 +147,6 @@ namespace ApiFacer.Migrations
                         {
                             Id = 2,
                             name = "Фотограф"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            name = "Гость"
                         });
                 });
 
@@ -133,10 +159,14 @@ namespace ApiFacer.Migrations
                     b.Property<int>("ImageId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("UserId")
+                    b.Property<int>("PeopleId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ImageId");
+
+                    b.HasIndex("PeopleId");
 
                     b.ToTable("UserImages");
                 });
@@ -200,6 +230,25 @@ namespace ApiFacer.Migrations
                         .IsRequired();
 
                     b.Navigation("EventId");
+                });
+
+            modelBuilder.Entity("ApiFacer.Classes.UserImages", b =>
+                {
+                    b.HasOne("ApiFacer.Classes.Images", "Image")
+                        .WithMany()
+                        .HasForeignKey("ImageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ApiFacer.Classes.People", "People")
+                        .WithMany()
+                        .HasForeignKey("PeopleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Image");
+
+                    b.Navigation("People");
                 });
 
             modelBuilder.Entity("ApiFacer.Classes.Events", b =>

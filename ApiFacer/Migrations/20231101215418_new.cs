@@ -7,7 +7,7 @@
 namespace ApiFacer.Migrations
 {
     /// <inheritdoc />
-    public partial class news : Migration
+    public partial class @new : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -50,6 +50,23 @@ namespace ApiFacer.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "People",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    descriptor = table.Column<byte[]>(type: "BLOB", nullable: false),
+                    first_name = table.Column<string>(type: "TEXT", nullable: false),
+                    middle_name = table.Column<string>(type: "TEXT", nullable: false),
+                    last_name = table.Column<string>(type: "TEXT", nullable: false),
+                    phone_number = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_People", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Roles",
                 columns: table => new
                 {
@@ -60,20 +77,6 @@ namespace ApiFacer.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Roles", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "UserImages",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ImageId = table.Column<int>(type: "INTEGER", nullable: false),
-                    UserId = table.Column<int>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_UserImages", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -115,14 +118,39 @@ namespace ApiFacer.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "UserImages",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    ImageId = table.Column<int>(type: "INTEGER", nullable: false),
+                    PeopleId = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserImages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserImages_Images_ImageId",
+                        column: x => x.ImageId,
+                        principalTable: "Images",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserImages_People_PeopleId",
+                        column: x => x.PeopleId,
+                        principalTable: "People",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.InsertData(
                 table: "Roles",
                 columns: new[] { "Id", "name" },
                 values: new object[,]
                 {
                     { 1, "Admin" },
-                    { 2, "Фотограф" },
-                    { 3, "Гость" }
+                    { 2, "Фотограф" }
                 });
 
             migrationBuilder.InsertData(
@@ -139,14 +167,21 @@ namespace ApiFacer.Migrations
                 name: "IX_Images_eventId",
                 table: "Images",
                 column: "eventId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserImages_ImageId",
+                table: "UserImages",
+                column: "ImageId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserImages_PeopleId",
+                table: "UserImages",
+                column: "PeopleId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "Images");
-
             migrationBuilder.DropTable(
                 name: "Logins");
 
@@ -158,6 +193,12 @@ namespace ApiFacer.Migrations
 
             migrationBuilder.DropTable(
                 name: "Users");
+
+            migrationBuilder.DropTable(
+                name: "Images");
+
+            migrationBuilder.DropTable(
+                name: "People");
 
             migrationBuilder.DropTable(
                 name: "Events");

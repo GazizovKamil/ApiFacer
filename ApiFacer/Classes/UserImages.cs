@@ -12,8 +12,6 @@ namespace ApiFacer.Classes
         [ForeignKey("ImageId")]
         public int ImageId { get; set; }
         public Images Image { get; set; }
-        [ForeignKey("UserId")]
-        public int UserId { get; set; }
         public People People { get; set; }
     }
 }
