@@ -1,4 +1,5 @@
 using ApiFacer.DB;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,7 +11,6 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
 builder.Services.AddDbContext<ApiDB>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DBConnection")), ServiceLifetime.Scoped);
 
@@ -20,6 +20,11 @@ builder.Services.AddCors(options =>
         builder.AllowAnyOrigin()
                .AllowAnyHeader()
                .AllowAnyMethod());
+});
+
+builder.Services.Configure<KestrelServerOptions>(options =>
+{
+    options.Limits.MaxRequestBodySize = null;
 });
 
 var app = builder.Build();

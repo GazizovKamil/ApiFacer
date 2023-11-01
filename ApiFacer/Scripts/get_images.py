@@ -37,17 +37,9 @@ for k, d in enumerate(dets):
             match = True
             c.execute("SELECT Images.path FROM UserImages JOIN Images ON UserImages.ImageId = Images.Id WHERE UserImages.UserId = ?", (row[0],))
             matched_images.extend([x[0] for x in c.fetchall()])
-            break
+            
     user_id = row[0] if match else None
     ImageId = None
-    if not match:
-        db_face_descriptor = np.array(face_descriptor).tobytes()
-        c.execute("INSERT INTO People (descriptor) VALUES (?)", (db_face_descriptor,))
-        user_id = c.lastrowid
-        c.execute("INSERT INTO Images (path, authorId, eventId) VALUES (?, ?, ?)", (path, user_id, event_id))
-        ImageId = c.lastrowid
-        c.execute("INSERT INTO UserImages (ImageId, UserId) VALUES (?, ?)", (ImageId, user_id))
-
 
 conn.commit()
 conn.close()

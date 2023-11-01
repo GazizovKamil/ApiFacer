@@ -269,7 +269,7 @@ namespace ApiFacer.Controllers
 
         [HttpPost]
         [Route("add_image_to_event/{eventId}")]
-        public async Task<ActionResult> add_image_to_event([FromRoute] int eventId, [FromForm]ImageRequest s)
+        public async Task<ActionResult> add_image_to_event([FromRoute] int eventId, [FromForm] ImageRequest s)
         {
             var user = await Session(s.sessionkey);
 
@@ -288,13 +288,14 @@ namespace ApiFacer.Controllers
                     return NotFound(new { message = "Мероприятие не найдено!", status = "err" });
                 }
 
-                //Console.WriteLine(Path.Combine(mainPath, eventEntity.path));
                 string folderPath = Path.Combine(mainPath, eventEntity.path);
 
                 if (!Directory.Exists(folderPath))
                 {
                     Directory.CreateDirectory(folderPath);
                 }
+
+                var tasks = new List<Task<Images>>();
 
                 foreach (var file in s.files)
                 {
@@ -305,14 +306,26 @@ namespace ApiFacer.Controllers
                         return BadRequest(new { message = "Неподдерживаемый тип файла. Только .jpg, .jpeg, .png файлы поддерживаются.", status = "err" });
                     }
 
-                    Images image = await ProcessImage(file, folderPath, eventId, eventEntity.path,user.userId);
-                    await dbContext.Images.AddAsync(image);
-                    await dbContext.SaveChangesAsync();
-
-                    string fileNameFromEventFolders = Path.Combine("EventFolders", eventEntity.path, file.FileName);
-
-                    await Task.Run(() => CallPythonScript(Path.Combine(folderPath, file.FileName), fileNameFromEventFolders));
+                    tasks.Add(ProcessImage(file, folderPath, eventId, eventEntity.path, user.userId));
                 }
+
+                var images = await Task.WhenAll(tasks);
+
+                foreach (var image in images)
+                {
+                    await dbContext.Images.AddAsync(image);
+                }
+
+                // Save changes to the database
+                await dbContext.SaveChangesAsync();
+
+                var pythonTasks = images.Select(image =>
+                {
+                    string fileNameFromEventFolders = Path.Combine("EventFolders", eventEntity.path, Path.GetFileName(image.path));
+                    return CallPythonScriptAsync(Path.Combine(folderPath, Path.GetFileName(image.path)), fileNameFromEventFolders);
+                });
+
+                await Task.WhenAll(pythonTasks);
 
                 return Ok(new { message = "Файлы успешно загружены!", status = "ok" });
             }
@@ -321,6 +334,7 @@ namespace ApiFacer.Controllers
                 return NotFound(new { message = "Нет прав!", status = "err" });
             }
         }
+
 
         [HttpGet]
         [Route("images/{*filepath}")]
@@ -336,7 +350,7 @@ namespace ApiFacer.Controllers
         }
 
         [NonAction]
-        void CallPythonScript(string imagePath, string path)
+        async Task CallPythonScriptAsync(string imagePath, string path)
         {
             using (Process process = new Process())
             {
@@ -345,7 +359,7 @@ namespace ApiFacer.Controllers
                 process.StartInfo.Arguments = $"./Scripts/face_detection.py \"{imagePath}\" \"{path}\"";
                 process.Start();
 
-                process.WaitForExit();
+                await process.WaitForExitAsync();
             }
         }
 
