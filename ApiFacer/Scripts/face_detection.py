@@ -25,6 +25,7 @@ def insert_descriptor(face_descriptor, path):
 
         conn.commit()
 
+
 # Load the image
 image_path = sys.argv[1]
 path = sys.argv[2]
