@@ -162,7 +162,6 @@ namespace ApiFacer.Controllers
 
         }
 
-
         [HttpPost]
         [Route("get_events")]
         public async Task<ActionResult> get_events(SessionRequest session)
@@ -196,8 +195,37 @@ namespace ApiFacer.Controllers
         }
 
         [HttpPost]
+        [Route("get_user_name")]
+        public async Task<ActionResult> get_user_name(SessionRequest session)
+        {
+            var login = await Session(session.sessionkey);
+
+            if (login == null)
+            {
+                return NotFound(new { message = "Вы не вошли в профиль", status = "err" });
+            }
+
+            var user = await dbContext.Users.FirstOrDefaultAsync(x=> x.Id == login.userId);
+
+            var fullName = $"{user.surname} {user.first_name} {user.last_name}".Trim();
+
+            return Ok(new { status = "ok", fullName = fullName });
+        }
+
+        [HttpPost]
+        [Route("get_all_events")]
+        public async Task<ActionResult> get_all_events()
+        {
+            var events = await dbContext.Events
+                                .Select(e => new { e.Id, e.Name })
+                                .ToListAsync();
+
+            return Ok(new { status = "ok", events = events });
+        }
+
+        [HttpPost]
         [Route("logout")]
-        public async Task<IActionResult> LogOut(SessionRequest session)
+        public async Task<IActionResult> logout(SessionRequest session)
         {
             var login = Session(session.sessionkey);
 
