@@ -24,7 +24,7 @@ matched_images_set = set()  # Используем set для хранения �
 for k, d in enumerate(dets):
     shape = sp(img, d)
     face_descriptor = facerec.compute_face_descriptor(img, shape)
-    c.execute("SELECT * FROM People")
+    c.execute("SELECT * FROM People JOIN UserImages ON People.Id = UserImages.PeopleId JOIN Images ON UserImages.ImageId = Images.Id WHERE Images.eventId = ?", (event_id,))
     rows = c.fetchall()
     if len(rows) == 0:
         sys.exit()
