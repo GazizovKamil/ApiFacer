@@ -212,7 +212,7 @@ namespace ApiFacer.Controllers
             return Ok(new { status = "ok", fullName = fullName });
         }
 
-        [HttpPost]
+        [HttpGet]
         [Route("get_all_events")]
         public async Task<ActionResult> get_all_events()
         {
