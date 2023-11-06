@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Face Search</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <style>
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Задайте цвет и прозрачность оверлея */
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Задайте значение z-index, чтобы оверлей был над всем остальным контентом */
+        }
+
+        .loading-spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite; /* Анимация вращения */
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+
+    <div class="container mt-5">
+        <h1>Face Search</h1>
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="loading-spinner"></div>
+        </div>
+
+        <!-- Form for uploading multiple images -->
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="imageFiles" class="form-label">Upload Multiple Images</label>
+                <input type="file" class="form-control" id="imageFiles" name="files" multiple required>
+            </div>
+            <div class="mb-3">
+                <label for="sessionKey" class="form-label">Session Key</label>
+                <input type="text" class="form-control" id="sessionKey" name="sessionkey" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Upload Images</button>
+        </form>
+
+        <hr>
+
+        <!-- Form for face search -->
+        <form id="faceSearchForm" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="searchFace" class="form-label">Search by Face</label>
+                <input type="file" class="form-control" id="searchFace" name="file" required>
+            </div>
+            <button type="submit" class="btn btn-success">Search</button>
+        </form>
+
+        <hr>
+
+        <!-- Results -->
+        <div id="results">
+            <!-- Matched images will be displayed here -->
+        </div>
+    </div>
+
+    <!-- Bootstrap JS (optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Custom Script -->
+    <script src="script.js"></script>
+</body>
+</html>
