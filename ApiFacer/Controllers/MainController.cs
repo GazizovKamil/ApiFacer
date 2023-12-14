@@ -347,11 +347,22 @@ namespace ApiFacer.Controllers
                 // Save changes to the database
                 await dbContext.SaveChangesAsync();
 
-                var pythonTasks = images.Select(image =>
+                const int batchSize = 5; // Размер пакета для обработки (можно настроить по своему усмотрению)
+                var pythonTasks = new List<Task>();
+
+                for (int i = 0; i < images.Length; i += batchSize)
                 {
-                    string fileNameFromEventFolders = Path.Combine("EventFolders", eventEntity.path, Path.GetFileName(image.path));
-                    return CallPythonScriptAsync(Path.Combine(folderPath, Path.GetFileName(image.path)), fileNameFromEventFolders);
-                });
+                    var batchImages = images.Skip(i).Take(batchSize); // Выборка изображений для текущего пакета
+
+                    var task = batchImages.Select(image =>
+                    {
+                        string fileNameFromEventFolders = Path.Combine("EventFolders", eventEntity.path, Path.GetFileName(image.path));
+                        return CallPythonScriptAsync(Path.Combine(folderPath, Path.GetFileName(image.path)), fileNameFromEventFolders);
+                    });
+
+                    pythonTasks.AddRange(task);
+                    await Task.WhenAll(tasks);
+                }
 
                 await Task.WhenAll(pythonTasks);
 
