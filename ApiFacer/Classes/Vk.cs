@@ -1,30 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
-using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace ConsoleFaiserScript.Classes
 {
-    public class UserImages
+    public class Person
     {
-        [Key]
-        public int id { get; set; }
-        public int userId { get; set; }
-        public string yandexPath { get; set; }
-        public string localPath { get; set; }
-        public int eventId { get; set; }
-    }
-
-    public class PersonVk
-    {
-        [Key]
-        public int userImagesId { get; set; }
         public string tag { get; set; }
-        [NotMapped]
         public int[] coord { get; set; }
         public double confidence { get; set; }
         public double awesomeness { get; set; }
@@ -36,5 +20,25 @@ namespace ConsoleFaiserScript.Classes
         public double arousal { get; set; }
         public double frontality { get; set; }
         public double visibility { get; set; }
+    }
+
+    public class Object
+    {
+        public int status { get; set; }
+        public string name { get; set; }
+        public List<Person> persons { get; set; }
+    }
+
+    public class Body
+    {
+        public List<Object> objects { get; set; }
+    }
+
+    public class Root
+    {
+        public int status { get; set; }
+        public Body body { get; set; }
+        public bool htmlencoded { get; set; }
+        public long last_modified { get; set; }
     }
 }

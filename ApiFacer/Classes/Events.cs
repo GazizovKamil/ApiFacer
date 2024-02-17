@@ -9,11 +9,5 @@ namespace ApiFacer.Classes
         public int Id { get; set; }
         public string? Name { get; set; }
         public string? path { get; set; }
-        public int authorId { get; set; }
-        public int? ParentEventId { get; set; }
-        [ForeignKey("ParentEventId")]
-        public Events ParentEvent { get; set; }
-
-        public ICollection<Images> Images { get; set; }
     }
 }
