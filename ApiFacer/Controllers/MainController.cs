@@ -344,18 +344,7 @@ namespace ApiFacer.Controllers
                 offset += limit;
                 allFilesInFolder = allFilesInFolder.Concat(fooResourceDescription.Embedded.Items.Where(item => item.Type == YandexDisk.Client.Protocol.ResourceType.File));
 
-                do
-                {
-                    fooResourceDescription = await diskApi.MetaInfo.GetInfoAsync(new ResourceRequest
-                    {
-                        Path = s.yandexPath,
-                        Limit = limit,
-                        Offset = offset,
-                    }, CancellationToken.None);
-                    allFilesInFolder = allFilesInFolder.Concat(fooResourceDescription.Embedded.Items.Where(item => item.Type == YandexDisk.Client.Protocol.ResourceType.File));
-                    offset += limit;
-                }
-                while (fooResourceDescription.Embedded.Items.Count == limit);
+                await TraverseFoldersAsync(s.yandexPath);
 
                 IEnumerable<Task> downloadingTasks =
                 allFilesInFolder.Select(async file =>
