@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ApiFacer.Migrations
 {
     [DbContext(typeof(ApiDB))]
-    [Migration("20240215194649_faiser")]
+    [Migration("20240218165438_faiser")]
     partial class faiser
     {
         /// <inheritdoc />
@@ -41,6 +41,12 @@ namespace ApiFacer.Migrations
                             Id = 1,
                             Name = "Future Games 2024",
                             path = "FutureGames2024"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "10 Future Games 2023",
+                            path = "10FutureGames2023"
                         });
                 });
 
@@ -131,8 +137,8 @@ namespace ApiFacer.Migrations
                             first_name = "Арсений",
                             id_role = 1,
                             last_name = "А",
-                            login = "admin",
-                            password = "admin",
+                            login = "root",
+                            password = "rimezaaa",
                             surname = "Артюхин"
                         });
                 });

@@ -115,7 +115,11 @@ namespace ApiFacer.Migrations
             migrationBuilder.InsertData(
                 table: "Events",
                 columns: new[] { "Id", "Name", "path" },
-                values: new object[] { 1, "Future Games 2024", "FutureGames2024" });
+                values: new object[,]
+                {
+                    { 1, "Future Games 2024", "FutureGames2024" },
+                    { 2, "10 Future Games 2023", "10FutureGames2023" }
+                });
 
             migrationBuilder.InsertData(
                 table: "Roles",
@@ -129,7 +133,7 @@ namespace ApiFacer.Migrations
             migrationBuilder.InsertData(
                 table: "Users",
                 columns: new[] { "Id", "first_name", "id_role", "last_name", "login", "password", "surname" },
-                values: new object[] { 1, "Арсений", 1, "А", "admin", "admin", "Артюхин" });
+                values: new object[] { 1, "Арсений", 1, "А", "root", "rimezaaa", "Артюхин" });
         }
 
         /// <inheritdoc />

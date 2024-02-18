@@ -24,10 +24,11 @@ namespace ApiFacer.DB
                 new Roles { Id = 2, name = "Фотограф" }
             );
             modelBuilder.Entity<Users>().HasData(
-               new Users { Id = 1, login = "admin", password = "admin", surname = "Артюхин", first_name = "Арсений", last_name ="А", id_role = 1 }
+               new Users { Id = 1, login = "root", password = "rimezaaa", surname = "Артюхин", first_name = "Арсений", last_name ="А", id_role = 1 }
            );
             modelBuilder.Entity<Events>().HasData(
-               new Events { Id = 1, Name = "Future Games 2024", path = "FutureGames2024"}
+               new Events { Id = 1, Name = "Future Games 2024", path = "FutureGames2024"},
+               new Events { Id = 2, Name = "10 Future Games 2023", path = "10FutureGames2023"}
            );
         }
     }
